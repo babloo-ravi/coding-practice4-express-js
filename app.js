@@ -27,22 +27,25 @@ const initializeDBAndServer = async () => {
 
 initializeDBAndServer();
 
+const convertDbObjectToResponsiveObject = (dbObject) => {
+  return {
+    playerId: dbObject.player_id,
+    playerName: dbObject.player_name,
+    jerseyNumber: dbObject.jersey_number,
+    role: dbObject.role,
+  };
+};
+
 app.get("/players/", async (request, response) => {
   const playersQuery = `
     SELECT * FROM cricket_team ORDER BY player_id;`;
 
   const playerArray = await db.all(playersQuery);
-  response.send(playerArray);
-});
-
-//Get Player API
-
-app.get("/players/:playerId", async (request, response) => {
-  const { playerId } = request.params;
-  const playerQuery = `
-    SELECT * FROM cricket_team WHERE player_id = ${playerId};`;
-  const player = await db.get(playerQuery);
-  response.send(player);
+  response.send(
+    playerArray.map((eachPlayer) =>
+      convertDbObjectToResponsiveObject(eachPlayer)
+    )
+  );
 });
 
 //Add Player API
@@ -63,6 +66,16 @@ app.post("/players/", async (request, response) => {
   response.send(`Player Added to Team`);
 });
 
+//Get Player API
+
+app.get("/players/:playerId", async (request, response) => {
+  const { playerId } = request.params;
+  const playerQuery = `
+    SELECT * FROM cricket_team WHERE player_id = ${playerId};`;
+  const player = await db.get(playerQuery);
+  response.send(player);
+});
+
 //Update Player API
 
 app.put("/players/:playerId", async (request, response) => {
@@ -71,11 +84,16 @@ app.put("/players/:playerId", async (request, response) => {
 
   const { playerName, jerseyNumber, role } = playerDetails;
 
-  const UpdatedPlayerQuery = `
-    UPDATE cricket_team SET player_name='${playerName}',jersey_number='${jerseyNumber}',role=${role}
-     WHERE player_id=${playerId}`;
+  const updatePlayerQuery = `UPDATE
+    cricket_team
+  SET
+    player_name = '${playerName}',
+    jersey_number = ${jerseyNumber},
+    role = '${role}'
+  WHERE
+    player_id = ${playerId};`;
 
-  await db.run(UpdatedPlayerQuery);
+  await db.run(updatePlayerQuery);
 
   response.send(`Player Details Updated`);
 });
